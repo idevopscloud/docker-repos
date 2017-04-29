@@ -1,0 +1,47 @@
+{
+  "docker": {
+    "http": null,
+    "telnet": null,
+    "proc": true
+  },
+  "etcd": {
+    "http": "10.141.10.36:51006",
+    "telnet": "10.141.10.36:4001/version",
+    "proc": true
+  },
+  "kube-apiserver": {
+    "http": "10.141.10.36:23006/ping",
+    "telnet": "10.141.10.36:8080/healthz",
+    "proc": true
+  },
+  "kube-controller-manager": {
+    "http": "10.141.10.36:10252/healthz",
+    "telnet": "10.141.10.36:10252",
+    "proc": true
+  },
+  "kube-scheduler": {
+    "http": "10.141.10.36:10251/healthz",
+    "telnet": "10.141.10.36:10251",
+    "proc": true
+  },
+  "heat": {
+    "http": "10.141.10.36:8004/versions",
+    "telnet": "10.141.10.36:8004",
+    "proc": false
+  },
+  "keystone": {
+    "http": "10.141.10.36:35357",
+    "telnet": "10.141.10.36:5001",
+    "proc": false
+  },
+  "paas-api": {
+    "http": "10.141.10.36:12306/ping",
+    "telnet": "10.141.10.36:12306",
+    "proc": false
+  },
+  "registry": {
+    "http": "10.141.10.36:5000",
+    "telnet": "10.141.10.36:5000",
+    "proc": false
+  }
+}

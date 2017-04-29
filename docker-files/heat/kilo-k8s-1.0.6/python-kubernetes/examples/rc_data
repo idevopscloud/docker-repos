@@ -1,0 +1,45 @@
+{
+   "kind":"ReplicationController",
+   "apiVersion":"v1beta3",
+   "metadata":{
+      "name":"nginx-test1",
+      "namespace": "test",
+      "labels":{
+         "name":"nginx-test1"
+      }
+   },
+   "spec":{
+      "replicas":3,
+      "selector":{
+         "name":"nginx-test1"
+      },
+      "template":{
+         "metadata":{
+	    "namespace": "test",
+            "labels":{
+               "name":"nginx-test1"
+            }
+         },
+         "spec":{
+            "volumes": [
+                {"name": "host-log", "hostPath": {"path": "/my-abc/log"}}
+            ],
+            "containers":[
+               {
+                  "name":"registry",
+                  "image":"nginx:1.7.1",
+                  "volumeMounts": [
+                      {"name": "host-log", "mountPath": "/abc/log", "readOnly": false}
+                  ],
+                  "ports":[
+                      "containerPort": 8080
+                  ],
+                  "env":[
+                      {"name": "REG1", "value": "http://172.30.10.185:5000/v1/"}
+                  ]
+               }
+            ]
+         }
+      }
+   }
+}

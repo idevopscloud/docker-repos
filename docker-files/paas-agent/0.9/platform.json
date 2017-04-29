@@ -1,0 +1,52 @@
+{
+  "docker": {
+    "http": null,
+    "telnet": null,
+    "proc": true
+  },
+  "platform_core": {
+    "http": "10.141.10.36:51003",
+    "telnet": "10.141.10.36:51003",
+    "proc": false
+  },
+  "platform_frontend": {
+    "http": "10.141.10.36:51005",
+    "telnet": "10.141.10.36:51005",
+    "proc": false
+  },
+  "account_management": {
+    "http": "10.141.10.36:51002",
+    "telnet": "10.141.10.36:51002",
+    "proc": false
+  },
+  "application_management": {
+    "http": "10.141.10.36:51004",
+    "telnet": "10.141.10.36:51004",
+    "proc": false
+  },
+  "registry": {
+    "http": "10.141.10.36:51006",
+    "telnet": "10.141.10.36:51006",
+    "proc": false
+  },
+  "cd-api": {
+    "http": "10.141.10.36:23006/ping",
+    "telnet": "10.141.10.36:23006",
+    "proc": false
+  },
+  "platform-jenkins": {
+    "http": "10.141.10.36:28080",
+    "telnet": "10.141.10.36:28080",
+    "proc": false
+  },
+  "mysql": {
+    "http": null,
+    "telnet": "10.141.10.36:3307",
+    "proc": false
+  },
+  "redis": {
+    "http": null,
+    "telnet": "10.141.10.36:51001",
+    "proc": false
+  }
+}

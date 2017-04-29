@@ -1,0 +1,149 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<project>
+  <actions/>
+  <description></description>
+  <keepDependencies>false</keepDependencies>
+  <properties>
+    <jenkins.model.BuildDiscarderProperty>
+      <strategy class="hudson.tasks.LogRotator">
+        <daysToKeep>-1</daysToKeep>
+        <numToKeep>-1</numToKeep>
+        <artifactDaysToKeep>-1</artifactDaysToKeep>
+        <artifactNumToKeep>-1</artifactNumToKeep>
+      </strategy>
+    </jenkins.model.BuildDiscarderProperty>
+    <hudson.model.ParametersDefinitionProperty>
+      <parameterDefinitions>
+        <hudson.model.StringParameterDefinition>
+          <name>img_in</name>
+          <description></description>
+          <defaultValue>ubuntu:14.04</defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>img_out</name>
+          <description></description>
+          <defaultValue>index.idevopscloud.com:5000/idevops/ubuntu:14.04</defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>out_repo_usr</name>
+          <description></description>
+          <defaultValue></defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.PasswordParameterDefinition>
+          <name>out_repo_pwd</name>
+          <description></description>
+          <defaultValue>WzwcR2sDZkTMDS+kFh7UXJXLNJpLwv+YIpk+P62UTPzPDSuVpStCXbUIEDkTAHLGa/hLohQYYGV06bpowl5o2OuTJl0RBgXgoDuDI/oF5AQM4yAacUeao3qqgCtjjAniSK6uP8iqyZiiC8sMv8OxLKNoe0arFoI7G/AMX6dtaufuKlvmXTPTrMwFHahqYYibXp/4MrOqQsYdCOy6Q0TMG4Af50/tdSJpmGATt5s/h5l4KjrU9u+peJAoLxVuGRG0Vg72vK6lvSbRlWv94Y6xC59UZ68ZIEwocPtJUkkmeL8ihKZ6kit2J6YiEPnX780mxWQi/rYwvkueMAJevIOaGFic8L8qzKvGswBrQbChHvynmq0Z0QHQnx9qSUNtkoomhY1KVUg7+ZaSuCdtRrWbsJ/Dcs7yowevgbo+8nn/wm5sdCIHNcN81L7tAZC6IRSl+kiLrpOIRThSopHxPaYl3+xM+CvOrpK2D1ABuWFkZFVWlmQbb/FjZi20Va4Ajhi9</defaultValue>
+        </hudson.model.PasswordParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>callback</name>
+          <description></description>
+          <defaultValue></defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>in_repo_usr</name>
+          <description></description>
+          <defaultValue></defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>in_repo_pwd</name>
+          <description></description>
+          <defaultValue></defaultValue>
+        </hudson.model.StringParameterDefinition>
+      </parameterDefinitions>
+    </hudson.model.ParametersDefinitionProperty>
+  </properties>
+  <scm class="hudson.scm.NullSCM"/>
+  <canRoam>true</canRoam>
+  <disabled>false</disabled>
+  <blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>
+  <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
+  <triggers/>
+  <concurrentBuild>true</concurrentBuild>
+  <builders>
+    <hudson.tasks.Shell>
+      <command>#!/bin/bash
+export PATH=/sbin:/usr/sbin:/usr/local/sbin:/usr/local/bin:/usr/bin:/bin
+
+status=IN_PROGRESS
+
+callback()
+{
+  set +x
+  for((i=1;i&lt;4;i++)); do
+    set -x
+    rsp_code=$(curl -X POST -o /dev/null -s -m 3 --connect-timeout 3 -w %{http_code} \
+    		&quot;${callback}&amp;build_num=${BUILD_NUMBER}&amp;status=${status}&quot;)
+    set +x
+    if [[ ${rsp_code} == &quot;200&quot; ]]; then
+        echo &quot;callback success.&quot;
+        break
+    fi
+    sleep 1
+  done
+  set -x
+}
+
+check_result()
+{
+	if [[ $? != 0 ]]; then
+    	status=FAILURE
+        callback
+        exit 1
+    fi
+}
+
+push_img()
+{
+  set +x
+  for((i=1;i&lt;4;i++)); do
+    set -x
+    sudo docker push $img_out
+    if [[ $? == 0 ]]; then
+        status=SUCCESS
+		callback
+        exit 0
+    else
+    	sleep 10
+    fi
+  done
+}
+
+
+login()
+{
+    local img=$1
+	local usr=$2
+    local pwd=$3
+    local repo=$(echo $img | awk -F &quot;/&quot; &apos;{print $1}&apos;)
+    if [[ &quot;$usr&quot;x != &quot;x&quot; &amp;&amp; &quot;$pwd&quot;x != &quot;x&quot; ]]; then
+    	sudo docker login -u $usr -p $pwd -e &quot;cd@idevopscloud.com&quot; $repo
+    	check_result
+	fi
+}
+
+
+set -x
+callback
+login $img_in 	$in_repo_usr 	$in_repo_pwd
+login $img_out 	$out_repo_usr 	$out_repo_pwd
+
+sudo docker pull $img_in
+check_result
+
+sudo docker tag -f $img_in $img_out
+push_img
+
+status=FAILURE
+callback
+exit 1</command>
+    </hudson.tasks.Shell>
+  </builders>
+  <publishers/>
+  <buildWrappers>
+    <hudson.plugins.ws__cleanup.PreBuildCleanup plugin="ws-cleanup@0.30">
+      <deleteDirs>false</deleteDirs>
+      <cleanupParameter></cleanupParameter>
+      <externalDelete></externalDelete>
+    </hudson.plugins.ws__cleanup.PreBuildCleanup>
+  </buildWrappers>
+</project>

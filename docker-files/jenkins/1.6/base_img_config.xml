@@ -1,0 +1,129 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<project>
+  <actions/>
+  <description></description>
+  <keepDependencies>false</keepDependencies>
+  <properties>
+    <jenkins.model.BuildDiscarderProperty>
+      <strategy class="hudson.tasks.LogRotator">
+        <daysToKeep>-1</daysToKeep>
+        <numToKeep>-1</numToKeep>
+        <artifactDaysToKeep>-1</artifactDaysToKeep>
+        <artifactNumToKeep>-1</artifactNumToKeep>
+      </strategy>
+    </jenkins.model.BuildDiscarderProperty>
+    <hudson.model.ParametersDefinitionProperty>
+      <parameterDefinitions>
+        <hudson.model.StringParameterDefinition>
+          <name>img_in</name>
+          <description></description>
+          <defaultValue>ubuntu:14.04</defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>img_out</name>
+          <description></description>
+          <defaultValue>aws-seoul.repo.idevopscloud.com:5000/my_app_base/u14_flask:1.0</defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>repo_usr</name>
+          <description></description>
+          <defaultValue></defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.PasswordParameterDefinition>
+          <name>repo_pwd</name>
+          <description></description>
+          <defaultValue>9m8vYjgFLP/PfbhAftwpRdUgpB66BBq0hPHKqcyy0Fq/X7mfMU1/OUu0lNzni7IPExCOMRY0StfN+kuhi7+wA5oFLVIVp8vHaswue8WGXVr655RmsrH0Kplarab4eT9Qqhi34eFS3S1EHfMIy3ADZzOBxf1S7fq08Zvak9SobxVLGeqfeNcUWXJ+eKtEI04d2A+K16f0VlZKnNxqBMzKn1FLXfHGG5BxmlWdNMwnx8af9HBwxneBaWjXfjYE/s3XROikP2Z4KCBKA+g8VuhuutT7Scay6bmO9z3WKoBN6irIkFvjX9Brv74b5MuYeEgGj32f5nveNdOBvlBp52AQkwuG7aDgTz5YAentKC5rA7c=</defaultValue>
+        </hudson.model.PasswordParameterDefinition>
+        <hudson.model.TextParameterDefinition>
+          <name>commands</name>
+          <description></description>
+          <defaultValue>apt-get update &amp;&amp; apt-get install -y python-dev python-setuptools &amp;&amp; easy_install flask</defaultValue>
+        </hudson.model.TextParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>callback</name>
+          <description></description>
+          <defaultValue></defaultValue>
+        </hudson.model.StringParameterDefinition>
+      </parameterDefinitions>
+    </hudson.model.ParametersDefinitionProperty>
+  </properties>
+  <scm class="hudson.scm.NullSCM"/>
+  <canRoam>true</canRoam>
+  <disabled>false</disabled>
+  <blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>
+  <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
+  <triggers/>
+  <concurrentBuild>true</concurrentBuild>
+  <builders>
+    <hudson.tasks.Shell>
+      <command>#!/bin/bash
+export PATH=/sbin:/usr/sbin:/usr/local/sbin:/usr/local/bin:/usr/bin:/bin
+
+status=IN_PROGRESS
+
+callback()
+{
+  set +x
+  for((i=1;i&lt;4;i++)); do
+    set -x
+    rsp_code=$(curl -X POST -o /dev/null -s -m 3 --connect-timeout 3 -w %{http_code} \
+    		&quot;${callback}&amp;build_num=${BUILD_NUMBER}&amp;status=${status}&quot; \
+            --data-urlencode &quot;df=`cat Dockerfile`&quot;)
+    set +x
+    if [[ ${rsp_code} == &quot;200&quot; ]]; then
+        echo &quot;callback success.&quot;
+        break
+    fi
+    sleep 1
+  done
+  set -x
+}
+
+gen_dockerfile(){
+    touch Dockerfile
+    echo &quot;FROM $img_in&quot; &gt; Dockerfile
+    if [[ &quot;$commands&quot;x != &quot;x&quot; ]]; then    
+        echo &quot;RUN $commands&quot; &gt;&gt; Dockerfile
+    fi
+}
+
+check_result()
+{
+	if [[ $? != 0 ]]; then
+    	status=FAILURE
+        callback
+        exit 1
+    fi
+}
+
+gen_dockerfile
+callback
+
+set -x
+
+cat Dockerfile
+
+if [[ &quot;$repo_usr&quot;x != &quot;x&quot; &amp;&amp; &quot;$repo_pwd&quot;x != &quot;x&quot; ]]; then
+    sudo docker login -u $repo_usr -p $repo_pwd -e &quot;cd@idevops.com&quot;
+    check_result
+fi
+
+sudo docker build -t $img_out .
+check_result
+
+sudo docker push $img_out
+check_result
+
+status=SUCCESS
+callback</command>
+    </hudson.tasks.Shell>
+  </builders>
+  <publishers/>
+  <buildWrappers>
+    <hudson.plugins.ws__cleanup.PreBuildCleanup plugin="ws-cleanup@0.30">
+      <deleteDirs>false</deleteDirs>
+      <cleanupParameter></cleanupParameter>
+      <externalDelete></externalDelete>
+    </hudson.plugins.ws__cleanup.PreBuildCleanup>
+  </buildWrappers>
+</project>

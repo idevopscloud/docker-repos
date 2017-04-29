@@ -1,0 +1,3 @@
+#**/*.py
+    cd-api/src/*.py
+    cd-api/src/*/*.py

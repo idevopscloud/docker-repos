@@ -1,0 +1,9 @@
+2014-10-25
+
+  Released 0.1
+  Initial checkin of python-kubernetes
+2015-04-9
+
+  Released 0.2
+  Support v1beta3
+  Add delete and resize interfaces 

@@ -1,0 +1,19 @@
+#!/usr/bin/env python
+# coding:utf-8
+
+WS_OVERLOAD_CHECK_INTERVAL_SEC = 60
+WS_OVERLOAD_THRESHOLD = 100
+
+WS_HTTPS_USER = 'default'
+WS_HTTPS_PASS = '5^gQ0T62,BjM_z'
+
+# Alert Level
+WARN = 1
+ERROR = 2
+FATAL = 4
+ALERT_LVL_NOT_STABLE = 0
+OK_STR = 'OK'
+WARN_STR = 'WARN'
+ERROR_STR = 'ERROR'
+FATAL_STR = 'FATAL'
+alert_lvl_map = {WARN: WARN_STR, ERROR: ERROR_STR, FATAL: FATAL_STR}

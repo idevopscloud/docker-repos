@@ -1,0 +1,91 @@
+{
+    "description": "Heat template to deploy kubernetes replication controllers and services to an existing host", 
+    "heat_template_version": "2013-05-23", 
+    "resources": {
+        "test-rc-rc": {
+            "properties": {
+                "apiversion": "v1", 
+                "definition": {
+                    "apiVersion": "v1", 
+                    "kind": "ReplicationController", 
+                    "metadata": {
+                        "labels": {
+                            "name": "test-rc", 
+                            "version": "latest"
+                        }, 
+                        "name": "test-rc-latest", 
+                        "namespace": "default"
+                    }, 
+                    "spec": {
+                        "replicas": 1, 
+                        "selector": {
+                            "name": "test-rc", 
+                            "version": "latest"
+                        }, 
+                        "template": {
+                            "metadata": {
+                                "labels": {
+                                    "name": "test-rc", 
+                                    "version": "latest"
+                                }, 
+                                "namespace": "default"
+                            }, 
+                            "spec": {
+                                "containers": [
+                                    {
+                                        "env": [
+                                            {
+                                                "name": "LC_ALL", 
+                                                "value": "en_US.UTF-8"
+                                            }, 
+                                            {
+                                                "name": "LANG", 
+                                                "value": "en_US.UTF-8"
+                                            }, 
+                                            {
+                                                "name": "LANGUAGE", 
+                                                "value": "en_US:en"
+                                            }
+                                        ], 
+                                        "image": "ubuntu", 
+                                        "name": "test-rc", 
+                                        "ports": [], 
+                                        "resources": {
+                                            "limits": {
+                                                "memory": "512Mi"
+                                            }
+                                        }, 
+                                        "volumeMounts": [
+                                            {
+                                                "mountPath": "/mnt/nfs", 
+                                                "name": "nfs", 
+                                                "readOnly": false
+                                            }
+                                        ]
+                                    }
+                                ], 
+                                "volumes": [
+                                    {
+                                        "hostPath": {
+                                            "path": "/mnt/nfs"
+                                        }, 
+                                        "name": "nfs"
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                }, 
+                "kubernetes_endpoint": "https://k8s-master", 
+                "namespace": "default", 
+                "rolling_updates": {
+                    "batch_percentage": 50, 
+                    "pause_time": 5
+                }, 
+                "token": "myToken0"
+            }, 
+            "type": "GoogleInc::Kubernetes::ReplicationController"
+        }
+    }
+}
+

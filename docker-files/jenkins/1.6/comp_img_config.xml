@@ -1,0 +1,169 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<project>
+  <actions/>
+  <description></description>
+  <keepDependencies>false</keepDependencies>
+  <properties>
+    <jenkins.model.BuildDiscarderProperty>
+      <strategy class="hudson.tasks.LogRotator">
+        <daysToKeep>-1</daysToKeep>
+        <numToKeep>-1</numToKeep>
+        <artifactDaysToKeep>-1</artifactDaysToKeep>
+        <artifactNumToKeep>-1</artifactNumToKeep>
+      </strategy>
+    </jenkins.model.BuildDiscarderProperty>
+    <hudson.model.ParametersDefinitionProperty>
+      <parameterDefinitions>
+        <hudson.model.StringParameterDefinition>
+          <name>img_in</name>
+          <description></description>
+          <defaultValue>aws-seoul.repo.idevopscloud.com:5000/my_app_base/u14_flask:1.0</defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>img_out</name>
+          <description></description>
+          <defaultValue>aws-seoul.repo.idevopscloud.com:5000/my_app/my-web:1.0</defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>repo_usr</name>
+          <description></description>
+          <defaultValue></defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.PasswordParameterDefinition>
+          <name>repo_pwd</name>
+          <description></description>
+          <defaultValue>VGf+O1LzDyW0zOH/LgQ6KLp5gEo0YMcJG/TYZNPxd46lIgc8lhIq2175ouhsNu4A9MbbPDe4cGgs+GRSSi9mcd9Zkx3FKhIMY5Nv7E+gb01HP4u5JIrAHlavNBZkwTH/4vFbkrOUrdo279Oy1WJHcijwt1su9B5k8j1tXUrouwo=</defaultValue>
+        </hudson.model.PasswordParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>git_addr</name>
+          <description></description>
+          <defaultValue>https://njuicsgz:Letmein123@bitbucket.org/idevops/my-web.git</defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>git_tag</name>
+          <description></description>
+          <defaultValue>0.2</defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>build_path</name>
+          <description></description>
+          <defaultValue>bin/build.sh </defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>start_path</name>
+          <description></description>
+          <defaultValue>bin/start.sh</defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>callback</name>
+          <description></description>
+          <defaultValue></defaultValue>
+        </hudson.model.StringParameterDefinition>
+      </parameterDefinitions>
+    </hudson.model.ParametersDefinitionProperty>
+  </properties>
+  <scm class="hudson.scm.NullSCM"/>
+  <canRoam>true</canRoam>
+  <disabled>false</disabled>
+  <blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>
+  <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
+  <triggers/>
+  <concurrentBuild>true</concurrentBuild>
+  <builders>
+    <hudson.tasks.Shell>
+      <command>#!/bin/bash
+export PATH=/sbin:/usr/sbin:/usr/local/sbin:/usr/local/bin:/usr/bin:/bin
+
+work_dir=/ido
+status=IN_PROGRESS
+
+check_result()
+{
+	if [[ $? != 0 ]]; then
+    	status=FAILURE
+        callback
+        exit 1
+    fi
+}
+
+callback()
+{
+  set +x
+  for((i=1;i&lt;4;i++)); do
+    set -x
+    rsp_code=$(curl -X POST -o /dev/null -s -m 3 --connect-timeout 3 -w %{http_code} \
+    		&quot;${callback}&amp;build_num=${BUILD_NUMBER}&amp;status=${status}&quot; \
+            --data-urlencode &quot;df=`cat Dockerfile`&quot;)
+    set +x
+    if [[ ${rsp_code} == &quot;200&quot; ]]; then
+        echo &quot;callback success.&quot;
+        break
+    fi
+    sleep 1
+  done
+  set -x
+}
+
+gen_dockerfile(){
+	local start_cmd=&quot;&quot;
+    if [[ ${build_path} != &quot;&quot; ]]; then
+        start_cmd=&quot;RUN cd `dirname ${work_dir}/${build_path}` &amp;&amp; bash ${work_dir}/${build_path} &amp;&amp; &quot;
+    else
+    	start_cmd=&quot;RUN &quot;
+    fi
+
+    touch Dockerfile
+    echo -e &quot;FROM $img_in \n\
+RUN mkdir ${work_dir} \n\
+ADD * ${work_dir}/ \n\
+${start_cmd} chmod +x ${work_dir}/${start_path} \n\
+CMD [\&quot;bash\&quot;, \&quot;-c\&quot;, \&quot;cd `dirname ${work_dir}/${start_path}` &amp;&amp; ${work_dir}/${start_path} &amp;&amp; while true; do sleep 3600; done\&quot;]&quot; &gt; Dockerfile    
+}
+
+get_code(){
+    git_dir=`echo ${git_addr##*/} | awk -F &apos;.&apos; &apos;{print $1}&apos;`
+    git clone $git_addr
+    check_result
+    
+    cd ${git_dir} &amp;&amp; git checkout $git_tag
+    check_result
+
+    cnt=`git branch | grep \* | grep $git_tag | wc -l`
+    if (( cnt != 1 )); then
+        echo &quot;can not check out git tag: $git_tag&quot;
+        status=FAILURE
+        callback
+        exit 1
+    else
+        echo &quot;successfully check out the tag: $git_tag&quot;
+    fi
+    
+    cd ..
+}
+
+gen_dockerfile
+callback
+
+set -x
+cat Dockerfile
+get_code
+
+sudo docker build -t ${img_out} .
+check_result
+
+sudo docker push ${img_out}
+check_result
+
+status=SUCCESS
+callback</command>
+    </hudson.tasks.Shell>
+  </builders>
+  <publishers/>
+  <buildWrappers>
+    <hudson.plugins.ws__cleanup.PreBuildCleanup plugin="ws-cleanup@0.30">
+      <deleteDirs>false</deleteDirs>
+      <cleanupParameter></cleanupParameter>
+      <externalDelete></externalDelete>
+    </hudson.plugins.ws__cleanup.PreBuildCleanup>
+  </buildWrappers>
+</project>
